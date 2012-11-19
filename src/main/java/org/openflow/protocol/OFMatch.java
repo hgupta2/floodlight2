@@ -546,8 +546,10 @@ public class OFMatch implements Cloneable, Serializable {
             // icmp
             // type
             this.transportSource = U8.f(packetDataBB.get());
+            System.out.println(this.transportSource);
             // code
             this.transportDestination = U8.f(packetDataBB.get());
+            System.out.println(transportDestination);
             break;
         case 0x06:
             // tcp
@@ -560,6 +562,7 @@ public class OFMatch implements Cloneable, Serializable {
             // udp
             // udp src
             this.transportSource = packetDataBB.getShort();
+            System.out.println(getTransportSource());
             // udp dest
             this.transportDestination = packetDataBB.getShort();
             break;

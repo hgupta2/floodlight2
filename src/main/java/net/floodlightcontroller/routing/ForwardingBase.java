@@ -257,7 +257,7 @@ public abstract class ForwardingBase
                     match.setWildcards(fm.getMatch().getWildcards());
                 }
             }
-
+            
             short outPort = switchPortList.get(indx).getPortId();
             short inPort = switchPortList.get(indx-1).getPortId();
             // set input and output ports on the switch

@@ -1,6 +1,7 @@
 package net.floodlightcontroller.topology;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -9,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Set;
+import java.util.Stack;
 
 
 import org.slf4j.Logger;
@@ -59,6 +61,9 @@ public class TopologyInstance {
 
     // States for routing
     protected Map<Long, BroadcastTree> destinationRootedTrees;
+    /** priya **/
+    protected Map<Long, List<BroadcastTree>> destinationRootedMultitrees;
+    /**/
     protected Map<Long, Set<NodePortTuple>> clusterBroadcastNodePorts;
     protected Map<Long, BroadcastTree> clusterBroadcastTrees;
     protected LRUHashMap<RouteId, Route> pathcache;
@@ -114,6 +119,9 @@ public class TopologyInstance {
         clusters = new HashSet<Cluster>();
         switchClusterMap = new HashMap<Long, Cluster>();
         destinationRootedTrees = new HashMap<Long, BroadcastTree>();
+        /**priya**/
+        destinationRootedMultitrees = new HashMap<Long, List<BroadcastTree>>();
+        /**/
         clusterBroadcastTrees = new HashMap<Long, BroadcastTree>();
         clusterBroadcastNodePorts = new HashMap<Long, Set<NodePortTuple>>();
         pathcache = new LRUHashMap<RouteId, Route>(PATH_CACHE_SIZE);
@@ -138,6 +146,12 @@ public class TopologyInstance {
         // unicast routing.  The trees are rooted at the destination.
         // Cost for tunnel links and direct links are the same.
         calculateShortestPathTreeInClusters();
+        
+        /** priya **/
+     // Node disjoint trees if they exist in the cluster
+        calculateNodeRedundantTreesInClusters();
+        
+        /**/
 
         // Step 3. Compute broadcast tree in each cluster.
         // Cost for tunnel links are high to discourage use of 
@@ -157,6 +171,8 @@ public class TopologyInstance {
         log.trace("tunnelPorts: {}", tunnelPorts);
         log.trace("clusters: {}", clusters);
         log.trace("destinationRootedTrees: {}", destinationRootedTrees);
+        /** priya **/
+        log.debug("destinationRootedMultitrees: {}", destinationRootedMultitrees);
         log.trace("clusterBroadcastNodePorts: {}", clusterBroadcastNodePorts);
         log.trace("-----------------------------------------------");
     }
@@ -436,7 +452,306 @@ public class TopologyInstance {
             return o.dist - this.dist;
         }
     }
+    
+    /** priya **/
+    protected void calculateNodeRedundantTreesInClusters(){
+        destinationRootedMultitrees.clear();
+        for( Cluster c: clusters) {
+        for(Long node : c.links.keySet()){
+        //log.debug("Computing trees rooted at "+node);
+        List<BroadcastTree> trees = nodeRedundantTrees(c, node);
+        if( ! trees.isEmpty() )
+        destinationRootedMultitrees.put(node, trees);
+        //else
+        //	log.debug("Trees are empty!");
+        }
+        }
+        }
+    
+    /** priya **/
+    List<Long> getPathToSet(Cluster c, Long validNextHopNode, Set<Long> coveredNodesCopy){
+        List<Long> path = new LinkedList<Long>();
+        Stack<Long> stack = new Stack<Long>();
+        HashMap<Long, String> color = new HashMap<Long, String>();
+        HashMap<Long, Long> predecessor = new HashMap<Long, Long>();
+        Set<Long> dstNeighbors = new HashSet<Long>();
+        for(Link l: c.links.get(validNextHopNode))
+        dstNeighbors.add(l.getDst());
+        for(Long node: c.links.keySet()){
+        predecessor.put(node, null);
+        color.put(node, "white");
+        }
+        stack.push(validNextHopNode);
+        color.put(validNextHopNode, "gray");
+        while( ! stack.isEmpty() ){
+        Long node = stack.pop();
+        color.put(node, "black");
+        for( Link l: c.links.get(node) ){
+        Long neighbor = l.getDst();
+        if( color.get(neighbor).equals("white")){
+        stack.push(neighbor);
+        color.put(neighbor, "gray");
+        predecessor.put(neighbor, node);
+        if( coveredNodesCopy.contains(neighbor)){
+        Long pathnode = neighbor;
+        while( pathnode != null ){
+        path.add(0, pathnode);
+        pathnode = predecessor.get(pathnode); 
+        }
+        return path;
+        }
+        }
+        }
+        }
+        return path;
+        }
+    
+    /** priya **/
+    private Link getLinkFromTo(Cluster c, Long nodeA, Long nodeB){
+        Link link = null;
+        for( Link l: c.links.get(nodeA))
+        if( l.getDst() == nodeB )
+        return l;
+        return link;
+        }
+    /** priya **/
+    protected List<Long> getDstCycle(Cluster c, Long dst){
+        List<Long> dstCycle = new LinkedList<Long>();
+        Stack<Long> stack = new Stack<Long>();
+        HashMap<Long, String> color = new HashMap<Long, String>();
+        HashMap<Long, Long> predecessor = new HashMap<Long, Long>();
+        Set<Long> dstNeighbors = new HashSet<Long>();
+        for(Link l: c.links.get(dst))
+        dstNeighbors.add(l.getDst());
+        for(Long node: c.links.keySet()){
+        predecessor.put(node, null);
+        color.put(node, "white");
+        }
+        stack.push(dst);
+        color.put(dst, "gray");
+        while( ! stack.isEmpty() ){
+        Long node = stack.pop();
+        color.put(node, "black");
+        for( Link l: c.links.get(node) ){
+        Long neighbor = l.getDst();
+        if( color.get(neighbor).equals("white")){
+        stack.push(neighbor);
+        color.put(neighbor, "gray");
+        predecessor.put(neighbor, node);
+        }
+        else{
+        if( color.get(neighbor).equals("gray") && dstNeighbors.contains(neighbor) ){
+        while( node != dst ){
+        dstCycle.add(node);
+        node = predecessor.get(node);
+        }
+        dstCycle.add(dst);
+        Collections.reverse(dstCycle);
+        dstCycle.add(neighbor);
+        dstCycle.add(dst);
+        return dstCycle;
+        }
+        }
+        }
+        }
+        return dstCycle;
+        }
+    
+    
+    /** priya **/
+    
+    protected List<BroadcastTree> nodeRedundantTrees(Cluster c, Long dst){
+        List<BroadcastTree> broadcastTrees = new LinkedList<BroadcastTree>();
+    HashMap<Long, Link> bluenexthoplinks = new HashMap<Long, Link>();
+    HashMap<Long, Link> rednexthoplinks = new HashMap<Long, Link>();
+    HashMap<Long, Integer> bluecost = new HashMap<Long, Integer>();
+    HashMap<Long, Integer> redcost = new HashMap<Long, Integer>();
+   
+    HashMap<Long, Double> volt = new HashMap<Long, Double>();
+    Double maxVolt = 1000.0;
+    Set<Long> coveredNodes = new HashSet<Long>();
+    Set<Long> uncoveredNodes = new HashSet<Long>(c.links.keySet());
+   
+    List<Long> dstCycle = getDstCycle(c, dst);
+   	
+    if(dstCycle.isEmpty())
+    return broadcastTrees;
 
+    //log.debug("Cycle found: "+dstCycle);
+   
+    int multiplier = 1;
+    volt.put(dst, maxVolt);
+    bluecost.put(dst, 0);
+    redcost.put(dst, 0);
+    Double voltIncrement = maxVolt / (dstCycle.size() - 1); 
+    for(Long node: dstCycle )
+    if( node != dst ){
+    volt.put(node, maxVolt - voltIncrement*multiplier);
+    ++multiplier;
+    }
+   
+    int index = 0;
+    do {
+    Long thisNode = dstCycle.get(index);
+    int thisNodeCost = bluecost.get(thisNode);
+    Long nextNode = dstCycle.get(index + 1);
+    bluenexthoplinks.put(nextNode, getLinkFromTo(c, nextNode, thisNode));
+    bluecost.put(nextNode, thisNodeCost + 1);
+    ++index;
+    } while (index < dstCycle.size() - 2);
+   
+    Collections.reverse(dstCycle);
+   
+    index = 0;
+    do {
+    Long thisNode = dstCycle.get(index);
+    int thisNodeCost = redcost.get(thisNode);
+    Long nextNode = dstCycle.get(index + 1);
+    rednexthoplinks.put(nextNode, getLinkFromTo(c, nextNode, thisNode));
+    redcost.put(nextNode, thisNodeCost + 1);
+    ++index;
+    } while (index < dstCycle.size() - 2);
+   
+    coveredNodes.addAll(dstCycle);
+    uncoveredNodes.removeAll(dstCycle);
+   
+    //log.debug("Blue tree:"+bluenexthoplinks);
+    //log.debug("Red tree:"+rednexthoplinks);
+   
+    while( ! uncoveredNodes.isEmpty() ){
+    Long validStartingNode = null;
+    Long validNextHopNode = null;
+    for( Long node: coveredNodes){
+    for( Link l: c.links.get(node)){
+    if(uncoveredNodes.contains(l.getDst()))
+    {
+    validStartingNode = node;
+    validNextHopNode = l.getDst();
+    break;
+    }
+    }
+    if( validStartingNode != null)
+    break;
+    }
+ 
+    if( validStartingNode == null )
+    return broadcastTrees;
+
+    Set<Long> coveredNodesCopy = new HashSet<Long>( coveredNodes );
+    coveredNodesCopy.remove(validStartingNode);
+    Cluster clusterCopy = new Cluster(c);
+    clusterCopy.remove(validStartingNode);
+            List<Long> path = getPathToSet(clusterCopy, validNextHopNode, coveredNodesCopy); 
+
+            if( path.isEmpty() )            	
+            return broadcastTrees;
+            
+            path.add(0, validStartingNode);
+    
+            //log.debug("Path found: "+path);
+            
+            Long firstNode = path.get(0);
+            Long lastNode = path.get( path.size() - 1);
+            if( volt.get( firstNode ) < volt.get( lastNode ))
+            Collections.reverse(path);
+            
+            Double pathMaxVolt = 0.0;
+            for(Long node: coveredNodes)
+            if(volt.get(node) < volt.get(firstNode) && volt.get(node) > pathMaxVolt)
+            pathMaxVolt = volt.get(node);
+            
+        multiplier = 1;
+        voltIncrement = (volt.get(firstNode) - pathMaxVolt) / (path.size() - 1); 
+        for(index = 1; index < path.size() - 1 ; ++index )
+        {
+        volt.put(path.get(index), volt.get(firstNode) - voltIncrement*multiplier);
+        ++multiplier;
+        }
+       
+        index = 0;
+        do {
+        Long thisNode = path.get(index);
+        int thisNodeCost = bluecost.get(thisNode);
+        Long nextNode = path.get(index + 1);
+        bluenexthoplinks.put(nextNode, getLinkFromTo(c, nextNode, thisNode));
+        bluecost.put(nextNode, thisNodeCost + 1);
+        ++index;
+        } while (index < path.size() - 2);
+       
+        Collections.reverse(path);
+        index = 0;
+        do {
+        Long thisNode = path.get(index);
+        int thisNodeCost = redcost.get(thisNode);
+        Long nextNode = path.get(index + 1);
+        rednexthoplinks.put(nextNode, getLinkFromTo(c, nextNode, thisNode));
+        redcost.put(nextNode, thisNodeCost + 1);
+        ++index;
+        } while (index < path.size() - 2);
+       
+        //log.debug("Blue tree:"+bluenexthoplinks);
+        //log.debug("Red tree:"+rednexthoplinks);
+       
+        coveredNodes.addAll(path);
+        uncoveredNodes.removeAll(path);
+    }
+ 	
+    //log.debug("Blue tree:"+bluenexthoplinks);
+    //log.debug("Red tree:"+rednexthoplinks);
+    BroadcastTree blueBroadcastTree = new BroadcastTree(bluenexthoplinks, bluecost);
+        BroadcastTree redBroadcastTree = new BroadcastTree(rednexthoplinks, redcost);
+        broadcastTrees.add(blueBroadcastTree);
+        broadcastTrees.add(redBroadcastTree);
+        return broadcastTrees;
+    }
+    
+    /** priya **/
+    private List<Route> buildroutes(RouteId id, long srcId, long dstId) {
+        List<Route> listOfPaths = new ArrayList<Route>();
+
+        if (destinationRootedMultitrees.isEmpty()) return null;
+            if (destinationRootedMultitrees == null) return null;
+            if (destinationRootedMultitrees.get(dstId) == null) return null;
+
+            log.debug("buildroutes: there are "+ (destinationRootedMultitrees.get(dstId)).size() + " routes for dest "+ dstId );
+            
+    if (!switches.contains(srcId) || !switches.contains(dstId)) {
+    log.debug("buildroute: Standalone switch: {}", srcId);
+    } else {
+    //log.debug( (destinationRootedMultitrees.get(dstId)).size()+ " trees in destinationRootedMultitrees");
+    for (BroadcastTree tree : destinationRootedMultitrees.get(dstId)) {
+    Map<Long, Link> nexthoplinks = tree.getLinks();
+    if ((nexthoplinks != null) && (nexthoplinks.get(srcId) != null)) {
+    //LinkedList<Link> path =  new LinkedList<Link>();
+    NodePortTuple npt;
+    LinkedList<NodePortTuple> switchPorts = new LinkedList<NodePortTuple>();
+           
+    while (srcId != dstId) {
+    Link l = nexthoplinks.get(srcId);
+    //path.addLast(l);
+    npt = new NodePortTuple(l.getSrc(), l.getSrcPort());
+                   switchPorts.addLast(npt);
+                   npt = new NodePortTuple(l.getDst(), l.getDstPort());
+                   switchPorts.addLast(npt);
+                   srcId = nexthoplinks.get(srcId).getDst();
+                   
+                   //	src = nexthoplinks.get(src).getDst();
+    }
+    if(switchPorts != null && !switchPorts.isEmpty())
+    listOfPaths.add(new Route(id, switchPorts));
+    else
+    log.debug("Route on tree "+tree+" is empty");
+    }
+    }
+    }
+    log.debug("buildroutes: {}", listOfPaths);
+            if (log.isTraceEnabled()) {
+                log.trace("buildroutes: {}", listOfPaths);
+            }
+            return listOfPaths;
+        }
+    
+    
     protected BroadcastTree dijkstra(Cluster c, Long root, 
                                      Map<Link, Integer> linkCost,
                                      boolean isDstRooted) {
@@ -655,7 +970,28 @@ public class TopologyInstance {
         }
         return result;
     }
+    protected List<Route> getRoutes(long srcId, long dstId){
+        RouteId id = new RouteId(srcId, dstId);
+        List<Route> multitrees = null;
+        Route shortestRoute = null;
 
+           	multitrees = buildroutes(id, srcId, dstId);
+            
+            if( multitrees == null )
+            shortestRoute = buildroute(id, srcId, dstId);
+            
+            
+            if( shortestRoute != null ){
+            multitrees = new ArrayList<Route>();
+            multitrees.add(shortestRoute);
+            }
+                
+        if (log.isTraceEnabled()) {
+        log.trace("getRoute: {} -> {}", id, multitrees);
+            }
+            return multitrees;
+        }
+    
     protected BroadcastTree getBroadcastTreeForCluster(long clusterId){
         Cluster c = switchClusterMap.get(clusterId);
         if (c == null) return null;

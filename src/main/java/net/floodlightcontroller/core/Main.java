@@ -4,6 +4,7 @@ import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 
 import net.floodlightcontroller.core.internal.CmdLineSettings;
+import net.floodlightcontroller.core.internal.OFSwitchImpl;
 import net.floodlightcontroller.core.module.FloodlightModuleException;
 import net.floodlightcontroller.core.module.FloodlightModuleLoader;
 import net.floodlightcontroller.core.module.IFloodlightModuleContext;
@@ -44,6 +45,8 @@ public class Main {
         IFloodlightProviderService controller =
                 moduleContext.getServiceImpl(IFloodlightProviderService.class);
         // This call blocks, it has to be the last line in the main
+
+        
         controller.run();
     }
 }

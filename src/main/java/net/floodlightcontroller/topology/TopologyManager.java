@@ -506,7 +506,11 @@ public class TopologyManager implements
     // ***************
     // IRoutingService
     // ***************
-
+    /** priya **/
+    public List<Route> getRoutes(long src, long dst) {
+        return currentInstance.getRoutes(src, dst);
+    }
+    
     @Override
     public Route getRoute(long src, long dst) {
         return getRoute(src, dst, true);

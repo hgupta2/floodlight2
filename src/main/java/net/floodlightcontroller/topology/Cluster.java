@@ -1,5 +1,6 @@
 package net.floodlightcontroller.topology;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -17,7 +18,20 @@ public class Cluster {
         id = Long.MAX_VALUE;
         links = new HashMap<Long, Set<Link>>();
     }
-
+    /** priya **/
+    public Cluster(Cluster c){
+        id = c.getId();
+        links = c.getLinks();
+}
+    /** priya **/
+    void remove(long n) {
+        if( links.containsKey(n)) {
+                links.remove(n);
+                Set<Long> nodeSet = links.keySet();
+                id = Collections.min(nodeSet);
+        }
+}
+    
     public long getId() {
         return id;
     }

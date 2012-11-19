@@ -17,12 +17,17 @@
 
 package net.floodlightcontroller.routing;
 
+import java.util.List;
+
 import net.floodlightcontroller.core.module.IFloodlightService;
 import net.floodlightcontroller.routing.Route;
 
 public interface IRoutingService extends IFloodlightService {
 
-    /** Provides a route between src and dst that allows tunnels. */
+    /** priya **/
+	public List<Route> getRoutes(long src, long dst);
+	
+	/** Provides a route between src and dst that allows tunnels. */
     public Route getRoute(long src, long dst);
 
     /** Provides a route between src and dst, with option to allow or 

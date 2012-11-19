@@ -244,49 +244,63 @@ public class Forwarding extends ForwardingBase implements IFloodlightModule {
                     if (!srcDap.equals(dstDap) && 
                         (srcCluster != null) && 
                         (dstCluster != null)) {
-                        Route route = 
+                       /* Route route = 
                                 routingEngine.getRoute(srcDap.getSwitchDPID(),
                                                        (short)srcDap.getPort(),
                                                        dstDap.getSwitchDPID(),
-                                                       (short)dstDap.getPort());
-                        if (route != null) {
-                            if (log.isTraceEnabled()) {
-                                log.trace("pushRoute match={} route={} " + 
-                                          "destination={}:{}",
-                                          new Object[] {match, route, 
-                                                        dstDap.getSwitchDPID(),
-                                                        dstDap.getPort()});
-                            }
-                            long cookie = 
-                                    AppCookie.makeCookie(FORWARDING_APP_ID, 0);
-                            
-                         // if there is prior routing decision use wildcard                                                     
-                            Integer wildcard_hints = null;
-                            IRoutingDecision decision = null;
-                            if (cntx != null) {
-                                decision = IRoutingDecision.rtStore
-                                        .get(cntx,
-                                                IRoutingDecision.CONTEXT_DECISION);
-                            }
-                            if (decision != null) {
-                                wildcard_hints = decision.getWildcards();
-                            } else {
-                            	// L2 only wildcard if there is no prior route decision
-                                wildcard_hints = ((Integer) sw
-                                        .getAttribute(IOFSwitch.PROP_FASTWILDCARDS))
-                                        .intValue()
-                                        & ~OFMatch.OFPFW_IN_PORT
-                                        & ~OFMatch.OFPFW_DL_VLAN
-                                        & ~OFMatch.OFPFW_DL_SRC
-                                        & ~OFMatch.OFPFW_DL_DST
-                                        & ~OFMatch.OFPFW_NW_SRC_MASK
-                                        & ~OFMatch.OFPFW_NW_DST_MASK;
-                            }
+                                                       (short)dstDap.getPort());*/
+                    	/** priya **/
+                    	 List<Route> routes = routingEngine.getRoutes(
+                                 srcDap.getSwitchDPID(), dstDap.getSwitchDPID());
+                    	 
+                    		if (routes != null) {
+                    			log.debug(routes.size()+" route(s) returned");
+                    			for (Route route : routes) {
+                    				if (route != null) {
+                                        if (log.isTraceEnabled()) {
+                                            log.trace("pushRoute match={} route={} " + 
+                                                      "destination={}:{}",
+                                                      new Object[] {match, route, 
+                                                                    dstDap.getSwitchDPID(),
+                                                                    dstDap.getPort()});
+                                        }
+                                        long cookie = 
+                                                AppCookie.makeCookie(FORWARDING_APP_ID, 0);
+                                        
+                                     // if there is prior routing decision use wildcard                                                     
+                                        Integer wildcard_hints = null;
+                                        IRoutingDecision decision = null;
+                                        if (cntx != null) {
+                                            decision = IRoutingDecision.rtStore
+                                                    .get(cntx,
+                                                            IRoutingDecision.CONTEXT_DECISION);
+                                        }
+                                        if (decision != null) {
+                                            wildcard_hints = decision.getWildcards();
+                                        } else {
+                                        	// L2 only wildcard if there is no prior route decision
+                                            wildcard_hints = ((Integer) sw
+                                                    .getAttribute(IOFSwitch.PROP_FASTWILDCARDS))
+                                                    .intValue()
+                                                    & ~OFMatch.OFPFW_IN_PORT
+                                                    & ~OFMatch.OFPFW_DL_VLAN
+                                                    & ~OFMatch.OFPFW_DL_SRC
+                                                    & ~OFMatch.OFPFW_DL_DST
+                                                    & ~OFMatch.OFPFW_NW_SRC_MASK
+                                                    & ~OFMatch.OFPFW_NW_DST_MASK
+                                                    & ~OFMatch.OFPFW_DL_TYPE
+                                                    & ~OFMatch.OFPFW_NW_PROTO
+                                                    & ~OFMatch.OFPFW_TP_SRC
+                                                    & ~OFMatch.OFPFW_TP_DST;
+                                            		
+                                        }
 
-                            pushRoute(route, match, wildcard_hints, pi, sw.getId(), cookie, 
-                                      cntx, requestFlowRemovedNotifn, false,
-                                      OFFlowMod.OFPFC_ADD);
-                        }
+                                        pushRoute(route, match, wildcard_hints, pi, sw.getId(), cookie, 
+                                                  cntx, requestFlowRemovedNotifn, false,
+                                                  OFFlowMod.OFPFC_ADD);
+                                    }
+                    			}
+                    		}                 	                  	                    	 
                     }
                     iSrcDaps++;
                     iDstDaps++;
