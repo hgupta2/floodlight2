@@ -961,6 +961,17 @@ mr1.add(r);
 // mr has to be of type something like r
 }
 }
+else{
+	nptList = new ArrayList<NodePortTuple>();
+	npt = new NodePortTuple(srcId, srcPort);
+	nptList.add(0, npt); // add src port to the front
+	npt = new NodePortTuple(dstId, dstPort);
+	nptList.add(npt); // add dst port to the end
+
+	RouteId id = new RouteId(srcId, dstId);
+	Route r = new Route(id, nptList);
+	mr1.add(r);
+}
 return mr1;
 }
  
