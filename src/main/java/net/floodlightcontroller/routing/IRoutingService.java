@@ -51,4 +51,9 @@ public interface IRoutingService extends IFloodlightService {
      *  or not have tunnels as part of the path.
      */
     public boolean routeExists(long src, long dst, boolean tunnelEnabled);
+
+    List<Route> getRoutes(long src, short srcPort, long dst, short dstPort);
+
+	List<Route> getRoutes(long src, short srcPort, long dst, short dstPort,
+			boolean tunnelEnabled);
 }

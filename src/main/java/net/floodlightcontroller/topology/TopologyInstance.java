@@ -926,7 +926,44 @@ public class TopologyInstance {
         if (link == null) return false;
         return true;
     }
+/** priya **/
+    protected List<Route> getRoutes(long srcId, short srcPort,
+            long dstId, short dstPort) {
 
+
+// Return null the route source and desitnation are the
+// same switchports.
+if (srcId == dstId && srcPort == dstPort)
+return null;
+
+List<NodePortTuple> nptList;
+NodePortTuple npt;
+List<Route> mr = getRoutes(srcId, dstId); /** return type list of routes**/ 
+List<Route> mr1 = new ArrayList<Route>();
+//List<Route> mr1 = new 
+if(mr != null){
+for (Route r : mr) {
+if (r == null && srcId != dstId) return null;
+
+if (r != null) {
+nptList= new ArrayList<NodePortTuple>(r.getPath());
+} else {
+nptList = new ArrayList<NodePortTuple>();
+}
+npt = new NodePortTuple(srcId, srcPort);
+nptList.add(0, npt); // add src port to the front
+npt = new NodePortTuple(dstId, dstPort);
+nptList.add(npt); // add dst port to the end
+
+RouteId id = new RouteId(srcId, dstId);
+r = new Route(id, nptList);
+mr1.add(r);
+// mr has to be of type something like r
+}
+}
+return mr1;
+}
+ 
     protected Route getRoute(long srcId, short srcPort,
                              long dstId, short dstPort) {
 

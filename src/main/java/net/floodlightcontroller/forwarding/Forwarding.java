@@ -251,7 +251,7 @@ public class Forwarding extends ForwardingBase implements IFloodlightModule {
                                                        (short)dstDap.getPort());*/
                     	/** priya **/
                     	 List<Route> routes = routingEngine.getRoutes(
-                                 srcDap.getSwitchDPID(), dstDap.getSwitchDPID());
+                                 srcDap.getSwitchDPID(),(short)srcDap.getPort(),dstDap.getSwitchDPID(),(short)dstDap.getPort());
                     	 
                     		if (routes != null) {
                     			log.debug(routes.size()+" route(s) returned");

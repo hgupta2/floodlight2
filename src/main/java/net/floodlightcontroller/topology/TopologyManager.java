@@ -511,6 +511,8 @@ public class TopologyManager implements
         return currentInstance.getRoutes(src, dst);
     }
     
+    
+
     @Override
     public Route getRoute(long src, long dst) {
         return getRoute(src, dst, true);
@@ -521,12 +523,24 @@ public class TopologyManager implements
         TopologyInstance ti = getCurrentInstance(tunnelEnabled);
         return ti.getRoute(src, dst);
     }
-
+/** priya **/
+    @Override
+    public List<Route> getRoutes(long src, short srcPort, long dst, short dstPort) {
+        return getRoutes(src, srcPort, dst, dstPort, true);
+    }
+    
     @Override
     public Route getRoute(long src, short srcPort, long dst, short dstPort) {
         return getRoute(src, srcPort, dst, dstPort, true);
     }
-
+/** priya **/
+    @Override
+    public List<Route> getRoutes(long src, short srcPort, long dst, short dstPort, 
+                          boolean tunnelEnabled) {
+        TopologyInstance ti = getCurrentInstance(tunnelEnabled);
+        return ti.getRoutes(src, srcPort, dst, dstPort);
+    }
+    
     @Override
     public Route getRoute(long src, short srcPort, long dst, short dstPort, 
                           boolean tunnelEnabled) {
