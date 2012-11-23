@@ -141,7 +141,7 @@ public class Forwarding extends ForwardingBase implements IFloodlightModule {
         
         fm.setCookie(cookie)
           .setHardTimeout((short) 0)
-          .setIdleTimeout((short) 5)
+          .setIdleTimeout((short) 50)
           .setBufferId(OFPacketOut.BUFFER_ID_NONE)
           .setMatch(match)
           .setActions(actions)
@@ -163,7 +163,7 @@ public class Forwarding extends ForwardingBase implements IFloodlightModule {
                                  boolean requestFlowRemovedNotifn) {    
         OFMatch match = new OFMatch();
         match.loadFromPacket(pi.getPacketData(), pi.getInPort());
-
+        log.debug("match={}", match);
         // Check if we have the location of the destination
         IDevice dstDevice = 
                 IDeviceService.fcStore.
@@ -254,16 +254,21 @@ public class Forwarding extends ForwardingBase implements IFloodlightModule {
                                  srcDap.getSwitchDPID(),(short)srcDap.getPort(),dstDap.getSwitchDPID(),(short)dstDap.getPort());
                     	 
                     		if (routes != null) {
+                    			Route route1 = routes.get(0);
+                    			Route route2 = routes.get(1);
+                    			log.debug("route1={}", route1);
+                    			log.debug("route1={}", route2);
                     			log.debug(routes.size()+" route(s) returned");
-                    			for (Route route : routes) {
-                    				if (route != null) {
+                    			//for (Route route : routes) {
+                    				if (route1 != null) {
                                         if (log.isTraceEnabled()) {
                                             log.trace("pushRoute match={} route={} " + 
                                                       "destination={}:{}",
-                                                      new Object[] {match, route, 
+                                                      new Object[] {match, route1, 
                                                                     dstDap.getSwitchDPID(),
                                                                     dstDap.getPort()});
                                         }
+                                        
                                         long cookie = 
                                                 AppCookie.makeCookie(FORWARDING_APP_ID, 0);
                                         
@@ -294,12 +299,20 @@ public class Forwarding extends ForwardingBase implements IFloodlightModule {
                                                     & ~OFMatch.OFPFW_TP_DST;
                                             		
                                         }
-
-                                        pushRoute(route, match, wildcard_hints, pi, sw.getId(), cookie, 
+                                        log.debug("matchtcpport={}", match.getTransportSource());
+                                        if(match.getTransportDestination()==23){//match.getTransportSource()==23)
+                                        	log.debug("inside loop");
+                                        	pushRoute(route1, match, wildcard_hints, pi, sw.getId(), cookie, 
                                                   cntx, requestFlowRemovedNotifn, false,
                                                   OFFlowMod.OFPFC_ADD);
+                                        }
+                                        else{
+                                        	pushRoute(route2, match, wildcard_hints, pi, sw.getId(), cookie, 
+                                                    cntx, requestFlowRemovedNotifn, false,
+                                                    OFFlowMod.OFPFC_ADD);
+                                        }
                                     }
-                    			}
+                    			//}
                     		}                 	                  	                    	 
                     }
                     iSrcDaps++;

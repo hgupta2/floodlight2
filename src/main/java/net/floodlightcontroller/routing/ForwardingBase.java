@@ -74,7 +74,7 @@ public abstract class ForwardingBase
     protected static int OFMESSAGE_DAMPER_CAPACITY = 10000; // TODO: find sweet spot
     protected static int OFMESSAGE_DAMPER_TIMEOUT = 250; // ms 
 
-    public static short FLOWMOD_DEFAULT_IDLE_TIMEOUT = 5; // in seconds
+    public static short FLOWMOD_DEFAULT_IDLE_TIMEOUT = 90; // in seconds
     public static short FLOWMOD_DEFAULT_HARD_TIMEOUT = 0; // infinite
     
     protected IFloodlightProviderService floodlightProvider;
@@ -242,7 +242,7 @@ public abstract class ForwardingBase
                 }
                 return srcSwitchIncluded;
             }
-
+            //log.debug("fm.tcpport before={}", fm.getMatch().getTransportSource());
             // set the match.
             fm.setMatch(wildcard(match, sw, wildcard_hints));
 
@@ -261,7 +261,8 @@ public abstract class ForwardingBase
             short outPort = switchPortList.get(indx).getPortId();
             short inPort = switchPortList.get(indx-1).getPortId();
             // set input and output ports on the switch
-            fm.getMatch().setInputPort(inPort);
+            //fm.getMatch().setInputPort(inPort);
+            fm.getMatch().setTransportSource(match.getTransportSource());
             ((OFActionOutput)fm.getActions().get(0)).setPort(outPort);
 
             try {
@@ -274,6 +275,16 @@ public abstract class ForwardingBase
                                           fm.getMatch().getInputPort(),
                                           outPort });
                 }
+                log.debug("Pushing Route flowmod routeIndx={} " + 
+                        "sw={} inPort={} outPort={}",
+                        new Object[] {indx,
+                                      sw,
+                                      fm.getMatch().setTransportSource(match.getTransportSource()),
+                                      outPort });
+                log.debug("fm.tcpport={}", fm.getMatch().getTransportSource());
+                //if(fm.getMatch().getTransportSource()==0||fm.getMatch().getTransportSource()==21||fm.getMatch().getTransportDestination()==21){
+                	
+                log.debug("its in here....");	
                 messageDamper.write(sw, fm, cntx);
                 if (doFlush) {
                     sw.flush();
@@ -287,6 +298,7 @@ public abstract class ForwardingBase
                     pushPacket(sw, match, pi, outPort, cntx);
                     srcSwitchIncluded = true;
                 }
+                //}  
             } catch (IOException e) {
                 log.error("Failure writing flow mod", e);
             }

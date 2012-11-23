@@ -708,7 +708,7 @@ public class TopologyInstance {
     /** priya **/
     private List<Route> buildroutes(RouteId id, long srcId, long dstId) {
         List<Route> listOfPaths = new ArrayList<Route>();
-
+        Long tempSrcId=srcId;
         if (destinationRootedMultitrees.isEmpty()) return null;
             if (destinationRootedMultitrees == null) return null;
             if (destinationRootedMultitrees.get(dstId) == null) return null;
@@ -720,6 +720,7 @@ public class TopologyInstance {
     } else {
     //log.debug( (destinationRootedMultitrees.get(dstId)).size()+ " trees in destinationRootedMultitrees");
     for (BroadcastTree tree : destinationRootedMultitrees.get(dstId)) {
+    srcId=tempSrcId;
     Map<Long, Link> nexthoplinks = tree.getLinks();
     if ((nexthoplinks != null) && (nexthoplinks.get(srcId) != null)) {
     //LinkedList<Link> path =  new LinkedList<Link>();
