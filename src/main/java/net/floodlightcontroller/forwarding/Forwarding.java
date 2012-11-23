@@ -254,12 +254,12 @@ public class Forwarding extends ForwardingBase implements IFloodlightModule {
                                  srcDap.getSwitchDPID(),(short)srcDap.getPort(),dstDap.getSwitchDPID(),(short)dstDap.getPort());
                     	 
                     		if (routes != null) {
-                    			Route route1 = routes.get(0);
-                    			Route route2 = routes.get(1);
-                    			log.debug("route1={}", route1);
-                    			log.debug("route1={}", route2);
-                    			log.debug(routes.size()+" route(s) returned");
-                    			//for (Route route : routes) {
+                    			if(routes.size()==2){
+                    				Route route1 = routes.get(0);
+	                    			Route route2 = routes.get(1);
+	                    			log.debug("route1={}", route1);
+	                    			log.debug("route2={}", route2);
+	                    			log.debug(routes.size()+" route(s) returned");
                     				if (route1 != null) {
                                         if (log.isTraceEnabled()) {
                                             log.trace("pushRoute match={} route={} " + 
@@ -312,7 +312,60 @@ public class Forwarding extends ForwardingBase implements IFloodlightModule {
                                                     OFFlowMod.OFPFC_ADD);
                                         }
                                     }
-                    			//}
+                    			
+                    			}
+                    			else{
+                    				for (Route route : routes) {
+	                    				if (route != null) {
+	                                        if (log.isTraceEnabled()) {
+	                                            log.trace("pushRoute match={} route={} " + 
+	                                                      "destination={}:{}",
+	                                                      new Object[] {match, route, 
+	                                                                    dstDap.getSwitchDPID(),
+	                                                                    dstDap.getPort()});
+	                                        }
+                                        
+	                                        long cookie = 
+	                                                AppCookie.makeCookie(FORWARDING_APP_ID, 0);
+	                                        
+	                                     // if there is prior routing decision use wildcard                                                     
+	                                        Integer wildcard_hints = null;
+	                                        IRoutingDecision decision = null;
+	                                        if (cntx != null) {
+	                                            decision = IRoutingDecision.rtStore
+	                                                    .get(cntx,
+	                                                            IRoutingDecision.CONTEXT_DECISION);
+	                                        }
+	                                        if (decision != null) {
+	                                            wildcard_hints = decision.getWildcards();
+	                                        } else {
+	                                        	// L2 only wildcard if there is no prior route decision
+	                                            wildcard_hints = ((Integer) sw
+	                                                    .getAttribute(IOFSwitch.PROP_FASTWILDCARDS))
+	                                                    .intValue()
+	                                                    & ~OFMatch.OFPFW_IN_PORT
+	                                                    & ~OFMatch.OFPFW_DL_VLAN
+	                                                    & ~OFMatch.OFPFW_DL_SRC
+	                                                    & ~OFMatch.OFPFW_DL_DST
+	                                                    & ~OFMatch.OFPFW_NW_SRC_MASK
+	                                                    & ~OFMatch.OFPFW_NW_DST_MASK
+	                                                    & ~OFMatch.OFPFW_DL_TYPE
+	                                                    & ~OFMatch.OFPFW_NW_PROTO
+	                                                    & ~OFMatch.OFPFW_TP_SRC
+	                                                    & ~OFMatch.OFPFW_TP_DST;
+	                                            		
+	                                        }
+	                                        log.debug("matchtcpport={}", match.getTransportSource());
+	                                        //if(match.getTransportDestination()==23){//match.getTransportSource()==23)
+	                                        	//log.debug("inside loop");
+	                                        	pushRoute(route, match, wildcard_hints, pi, sw.getId(), cookie, 
+	                                                  cntx, requestFlowRemovedNotifn, false,
+	                                                  OFFlowMod.OFPFC_ADD);
+	                                        //}
+                                        
+	                    				}
+                    				}
+                    			}
                     		}                 	                  	                    	 
                     }
                     iSrcDaps++;
