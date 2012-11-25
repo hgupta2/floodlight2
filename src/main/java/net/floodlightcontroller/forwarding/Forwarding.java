@@ -300,7 +300,7 @@ public class Forwarding extends ForwardingBase implements IFloodlightModule {
                                             		
                                         }
                                         log.debug("matchtcpport={}", match.getTransportSource());
-                                        if(match.getTransportDestination()==23){//match.getTransportSource()==23)
+                                        if(match.getTransportDestination()==23||match.getTransportSource()==21){
                                         	log.debug("inside loop");
                                         	pushRoute(route1, match, wildcard_hints, pi, sw.getId(), cookie, 
                                                   cntx, requestFlowRemovedNotifn, false,
