@@ -356,12 +356,12 @@ public class Forwarding extends ForwardingBase implements IFloodlightModule {
 	                                            		
 	                                        }
 	                                        log.debug("matchtcpport={}", match.getTransportSource());
-	                                        //if(match.getTransportDestination()==23){//match.getTransportSource()==23)
+	                                        if(match.getTransportDestination()==23||match.getTransportSource()==23||match.getTransportDestination()==0){
 	                                        	//log.debug("inside loop");
 	                                        	pushRoute(route, match, wildcard_hints, pi, sw.getId(), cookie, 
 	                                                  cntx, requestFlowRemovedNotifn, false,
 	                                                  OFFlowMod.OFPFC_ADD);
-	                                        //}
+	                                        }
                                         
 	                    				}
                     				}

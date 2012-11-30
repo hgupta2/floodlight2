@@ -1038,6 +1038,7 @@ return mr1;
         if (log.isTraceEnabled()) {
         log.trace("getRoute: {} -> {}", id, multitrees);
             }
+        log.debug("getRoute: {} -> {}", id, multitrees);
             return multitrees;
         }
     
